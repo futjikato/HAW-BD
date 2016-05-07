@@ -1,2 +1,5 @@
-# Dependency directories
+# general os stuff
+.DS_Store
+
+# dependency directories
 node_modules
