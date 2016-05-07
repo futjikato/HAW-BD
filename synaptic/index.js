@@ -1,38 +1,16 @@
-var synaptic = require('synaptic');
+const AirportStorage = require('./lib/airport');
+const Prediction = require('./lib/prediction');
 
-var Trainer = synaptic.Trainer,
-    Architect = synaptic.Architect;
+const airst = new AirportStorage();
+airst.init().then(function() {
+    let prediction = new Prediction(airst);
 
-var myPerceptron = new Architect.Perceptron(2,3,1);
-var myTrainer = new Trainer(myPerceptron);
-
-var trainingSet = [
-    {
-        input: [0.5,0],
-        output: [0.25]
-    },
-    {
-        input: [0.5,0.25],
-        output: [0.36]
-    },
-    {
-        input: [0,0.6],
-        output: [0.3]
-    },
-    {
-        input: [1,1],
-        output: [1]
-    },
-    {
-        input: [0.1,0.1],
-        output: [0.1]
-    },
-    {
-        input: [0.3,0.6],
-        output: [0.45]
-    }
-];
-myTrainer.train(trainingSet);
-
-var res = myPerceptron.activate([0.2,0.2]);
-console.log(res);
+    prediction.addFlightData({
+        airlineCode: 'LH',
+        departureAirport: 'DAL',
+        arrivalAirport: 'JFK',
+        departureDatetime: Date.now()
+    }, false);
+}, function(err) {
+    console.log('storage init err', err);
+});

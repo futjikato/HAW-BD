@@ -1,0 +1,20 @@
+version: '2'
+services:
+  mongodb:
+    image: mongo:3.3
+  synaptic:
+    build: ./synaptic
+    depends_on:
+      - mongodb
+    links:
+      - mongodb
+  lhcollector:
+    build: ./collector
+    depends_on:
+      - mongodb
+    links:
+      - mongodb
+      - synaptic
+    environment:
+      APIID: "${LHAPI_CLIENTID}"
+      APISEC: "${LHAPI_CLIENTSEC}"
