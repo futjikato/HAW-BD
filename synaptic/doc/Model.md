@@ -24,7 +24,7 @@ network for each airline. Thus this parameter is not mapped to an input value.
 
 We create three input parameters from the two airport codes.
 
-First we calculate the distance between the airports. Max distance maps to 1. Other distances are
+First we calculate the flight time between the airports. Max duration maps to 1. Other durations are
 calculated relative to the maximum distance.
 
 Next we use a "delay-score" of each airport. This is a score that is calculated by the amount of

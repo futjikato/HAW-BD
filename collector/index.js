@@ -11,6 +11,7 @@ function planCrawling(airports) {
 
         return lhapi.getDepartures(code, '2016-04-30T00:00', '2016-05-01T00:00').then(function(data) {
             debug('store departures');
+            // @todo: send a payload to http://synaptic:8080/api/flights
             return storage.storeDepartures(data);
         }, function(err) {
             debug('catch error. skipping airport', err);

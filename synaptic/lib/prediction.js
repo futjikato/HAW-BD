@@ -23,9 +23,9 @@
          * @param {string} [data.departureAirport] origin IATA airport code
          * @param {string} [data.arrivalAirport] destination IATA airport code
          * @param {Date} [data.departureDatetime] Datetime object
-         * @param {boolean} isDelayed
+         * @param {boolean} [data.isDelayed] Flag is the flight had any delay.
          */
-        addFlightData(data, isDelayed) {
+        addFlightData(data) {
             let sequence = Promise.resolve({});
             var $this = this;
 

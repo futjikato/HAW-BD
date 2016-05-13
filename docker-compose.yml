@@ -8,6 +8,8 @@ services:
       - mongodb
     links:
       - mongodb
+    expose:
+      - "8080"
   lhcollector:
     build: ./collector
     depends_on:

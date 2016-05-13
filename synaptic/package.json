@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "es6-promise": "^3.1.2",
+    "hapi": "^13.4.0",
     "mongodb": "^2.1.18",
     "synaptic": "^1.0.2"
   }

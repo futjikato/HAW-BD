@@ -12,3 +12,5 @@ copy the `.env.example` file as `.env` and fill all lines with your personal cre
 
 To start the whole thing just `docker-compose up`. On the first run docker will download a
 lot of base images and stuff so grab a drink of your choice and sit back.
+
+After every update run `docker-compose build` to rebuild the images with the new source code.
