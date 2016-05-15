@@ -2,8 +2,9 @@
     'use strict';
 
     const request = require('request');
-    const Promise = require('es6-promise').Promise;
     const apiDebug = require('debug')('lhapi');
+    const selectn = require('selectn');
+    const sprintf = require('sprintf-js').sprintf;
 
     const baseUrl = 'https://api.lufthansa.com/v1';
     const APILIMIT_HOUR = 1000;
@@ -31,11 +32,8 @@
          */
         auth() {
             var $this = this;
-            let seq = Promise.resolve();
 
-            return seq.then(function() {
-                return $this.waitNextSlot();
-            }).then(function () {
+            return $this.waitNextSlot().then(function() {
                 return $this.authRequest();
             });
         }
@@ -49,11 +47,8 @@
         getAirports() {
             var $this = this;
             let ep = '/references/airports/?LHoperated=true&lang=de';
-            let seq = Promise.resolve();
 
-            return seq.then(function() {
-                return $this.waitNextSlot();
-            }).then(function() {
+            return $this.waitNextSlot().then(function() {
                 return $this.authedRequest(ep);
             });
         }
@@ -71,11 +66,8 @@
         getDepartures(code, from, until) {
             let ep = '/operations/flightstatus/departures/' + code + '/' + from + '/' + until;
             var $this = this;
-            let seq = Promise.resolve();
 
-            return seq.then(function() {
-                return $this.waitNextSlot();
-            }).then(function() {
+            return $this.waitNextSlot().then(function() {
                 return $this.authedRequest(ep);
             });
         }
@@ -100,7 +92,12 @@
             });
         }
 
-
+        /**
+         * Authenticate against lh api.
+         * Will be automatically when authentication is missing or is expired.
+         *
+         * @returns {Promise}
+         */
         authRequest() {
             var $this = this;
             return new Promise(function (resolve, reject) {
@@ -135,44 +132,81 @@
             });
         }
 
+        /**
+         * Make an authorized request.
+         *
+         * @param {string} ep
+         * @returns {Promise}
+         */
         authedRequest(ep) {
             var $this = this;
-            return function() {
+            function doRequest() {
+                return new Promise(function (resolve, reject) {
+                    apiDebug(sprintf('Request %s', ep));
+                    request({
+                        url: baseUrl + ep,
+                        method: 'get',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Authorization': 'Bearer ' + $this.accessToken
+                        }
+                    }, function (err, httpResponse, body) {
+                        if (err)
+                            return reject(err);
 
-                let authInjectable = Promise.resolve();
+                        if (httpResponse.statusCode != 200) {
+                            return reject(Error('Error with status code ' + httpResponse.statusCode))
+                        }
 
-                if ($this.accessExpires < Date.now()) {
-                    // request new access out of order .. hope this fits into api limit
-                    apiDebug('inject refresh auth!');
-                    authInjectable.then($this.authRequest());
-                }
-
-                return authInjectable.then(function() {
-                    return new Promise(function (resolve, reject) {
-                        request({
-                            url: baseUrl + ep,
-                            method: 'get',
-                            headers: {
-                                'Accept': 'application/json',
-                                'Authorization': 'Bearer ' + $this.accessToken
-                            }
-                        }, function (err, httpResponse, body) {
-                            if (err)
-                                return reject(err);
-
-                            if (httpResponse.statusCode != 200) {
-                                apiDebug(body);
-                                return reject(Error('Error with status code ' + httpResponse.statusCode))
-                            }
-
-                            try {
-                                resolve(JSON.parse(body));
-                            } catch (e) {
-                                reject(Error('Unable to parse json response'));
-                            }
-                        });
+                        try {
+                            resolve(JSON.parse(body));
+                        } catch (e) {
+                            reject(Error('Unable to parse json response'));
+                        }
                     });
                 });
+            }
+
+            if (!this.accessToken || this.accessExpires < Date.now()) {
+                // request new access out of order .. hope this fits into api limit
+                apiDebug('inject refresh auth!');
+                return this.authRequest().then(function() {
+                    return doRequest();
+                });
+            } else {
+                return doRequest();
+            }
+        }
+
+        static normalizeAirport(data) {
+            return {
+                AirportCode: selectn('AirportCode', data),
+                Name: selectn('Names.Name.$', data),
+                Position: {
+                    Latitude: selectn('Position.Coordinate.Latitude', data),
+                    Longitude: selectn('Position.Coordinates.Longitude', data)
+                },
+                Score: 0.5,
+                isOperatedByLh: true
+            };
+        }
+
+        static normalizeFlight(data) {
+            return {
+                Departure: {
+                    AirportCode: selectn('Departure.AirportCode', data),
+                    isDelayed: selectn('Departure.TimeStatus.Code', data) === 'DL',
+                    ScheduledTime: selectn('Departure.ScheduledTimeUTC.DateTime', data),
+                    ActualTime: selectn('Departure.ActualTimeUTC.DateTime', data)
+                },
+                Arrival: {
+                    AirportCode: selectn('Arrival.AirportCode', data),
+                    isDelayed: selectn('Arrival.TimeStatus.Code', data) === 'DL',
+                    ScheduledTime: selectn('Arrival.ScheduledTimeUTC.DateTime', data),
+                    ActualTime: selectn('Arrival.ActualTimeUTC.DateTime', data)
+                },
+                OperatingCarrier: selectn('OperatingCarrier.AirlineID', data),
+                AircraftCode: selectn('Equipment.AircraftCode', data)
             };
         }
     }
